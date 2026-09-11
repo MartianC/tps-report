@@ -3,6 +3,10 @@
 在每个任务结束时，统计本任务内所有大模型请求的 TPS（每秒输出 token 数），
 并在最终回复末尾输出一行汇总：
 
+```
+平均 TPS：xxx token/s，最高 TPS：xxx token/s
+```
+
 ![任务结束自动汇报 TPS 的实际效果](docs/usage.png)
 
 ## 特性
