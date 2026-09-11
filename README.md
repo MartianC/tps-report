@@ -7,8 +7,12 @@
 平均 TPS：59.4 token/s，最高 TPS：76.4 token/s
 ```
 
+![任务结束自动汇报 TPS 的实际效果](docs/usage.png)
+
 ## 特性
 
+- **无需手动操作**：安装并写入常驻规则后，每个任务结束都会**自动触发**，
+  汇总行自动附在最终回复末尾；也可以随时主动问「刚才 TPS 多少」。
 - **双数据源，自动择优**：优先读 WorkBuddy trace 真值（`~/.workbuddy/traces/` 里的
   `generation` span，带真实耗时与 token 用量）；trace 异步落盘未就绪时，退回用
   会话记录（`~/.workbuddy/projects/`）按落盘边界推导耗时。推导法经 186 组样本
@@ -35,23 +39,26 @@
 3. 验证：
 
    ```bash
-   python3 ~/.workbuddy/skills/tps-report/tps_task.py --cwd "$(pwd)" --verbose
+   python3 "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)" --verbose
    ```
 
 ## 用法
 
+**日常无需任何手动操作**——技能常驻后，每次任务结束都会自动统计并汇报。
+以下命令仅用于手动验证、排障或主动查询：
+
 ```bash
 # 常规：输出一行汇总
-python3 tps_task.py --cwd "$(pwd)"
+python3 scripts/tps_task.py --cwd "$(pwd)"
 
 # 排障 / 用户追问：逐次明细（走 stderr，不污染汇总行）
-python3 tps_task.py --cwd "$(pwd)" --verbose
+python3 scripts/tps_task.py --cwd "$(pwd)" --verbose
 
 # 结构化输出
-python3 tps_task.py --cwd "$(pwd)" --json
+python3 scripts/tps_task.py --cwd "$(pwd)" --json
 
 # 会话记录推导的每请求固定开销（秒），默认 0.35，其他环境可调
-python3 tps_task.py --cwd "$(pwd)" --overhead 0
+python3 scripts/tps_task.py --cwd "$(pwd)" --overhead 0
 ```
 
 ## 统计口径

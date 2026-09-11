@@ -58,9 +58,9 @@ agent_created: true
 1. 在输出最终回复前，执行：
 
 ```bash
-PY=/Users/cyr/.workbuddy/binaries/python/envs/default/bin/python
+PY="$HOME/.workbuddy/binaries/python/envs/default/bin/python"
 [ -x "$PY" ] || PY=python3
-"$PY" ~/.workbuddy/skills/tps-report/tps_task.py --cwd "$(pwd)"
+"$PY" "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)"
 ```
 
 2. 取脚本 stdout 的**唯一一行**作为汇总行，原样附到最终回复最后一行。
@@ -126,9 +126,9 @@ TPS：本任务未采集到有效的 token 用量或耗时数据，无法计算�
 **最后一行**独立输出。不需要用户要求，也不要等用户问。
 
 ```bash
-PY=/Users/cyr/.workbuddy/binaries/python/envs/default/bin/python
+PY="$HOME/.workbuddy/binaries/python/envs/default/bin/python"
 [ -x "$PY" ] || PY=python3
-"$PY" ~/.workbuddy/skills/tps-report/tps_task.py --cwd "$(pwd)"
+"$PY" "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)"
 ```
 
 - 取 stdout 的唯一一行原样附在末尾，格式：`平均 TPS：X.X token/s，最高 TPS：Y.Y token/s`
@@ -143,7 +143,7 @@ PY=/Users/cyr/.workbuddy/binaries/python/envs/default/bin/python
 3. 验证：执行
 
 ```bash
-python3 ~/.workbuddy/skills/tps-report/tps_task.py --cwd "$(pwd)" --verbose
+python3 "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)" --verbose
 ```
 
    能看到命中次数与逐次明细即安装成功；若输出降级提示，检查
