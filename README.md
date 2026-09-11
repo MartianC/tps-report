@@ -3,10 +3,6 @@
 在每个任务结束时，统计本任务内所有大模型请求的 TPS（每秒输出 token 数），
 并在最终回复末尾输出一行汇总：
 
-```
-平均 TPS：59.4 token/s，最高 TPS：76.4 token/s
-```
-
 ![任务结束自动汇报 TPS 的实际效果](docs/usage.png)
 
 ## 特性
@@ -27,7 +23,7 @@
 
 **推荐方式**——把下面这句话复制给 WorkBuddy 发送即可，剩下的（下载文件、写入 MEMORY.md、验证）由它自动完成：
 
-```bash
+```
 请帮我安装 tps-report 技能： https://github.com/MartianC/tps-report, 按要求初始化并验证安装。
 ```
 
