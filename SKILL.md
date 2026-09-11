@@ -138,16 +138,17 @@ PY="$HOME/.workbuddy/binaries/python/envs/default/bin/python"
 
 ## 安装步骤（其他用户）
 
-1. 把本目录复制到用户级技能目录：`~/.workbuddy/skills/tps-report/`。
-2. 按「MEMORY.md 的处理说明 → 安装初始化」写入常驻规则（幂等，已存在则跳过）。
-3. 验证：执行
+把下面这句话复制给 WorkBuddy 发送即可，剩下的（下载文件、写入 MEMORY.md、验证）由它自动完成：
 
-```bash
-python3 "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)" --verbose
-```
+> 请帮我安装 tps-report 技能：从 https://github.com/MartianC/tps-report 下载全部文件
+> （SKILL.md、scripts/tps_task.py、README.md），保存到 `~/.workbuddy/skills/tps-report/`
+> 目录（保持 scripts/ 子目录结构），然后按 SKILL.md 中「MEMORY.md 的处理说明 → 安装初始化」
+> 把常驻规则幂等追加到 `~/.workbuddy/MEMORY.md`（已存在则跳过），最后执行
+> `"$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)" --verbose`
+> 验证安装，把结果告诉我。
 
-   能看到命中次数与逐次明细即安装成功；若输出降级提示，检查
-   `~/.workbuddy/traces/` 与 `~/.workbuddy/projects/` 是否存在。
+若最终输出命中次数与逐次明细，即安装成功；若输出降级提示，说明本机
+`~/.workbuddy/traces/` 或 `~/.workbuddy/projects/` 数据目录异常，需要单独排查。
 
 ## 兼容性与已知边界
 
