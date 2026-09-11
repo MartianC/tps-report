@@ -27,7 +27,9 @@
 
 **推荐方式**——把下面这句话复制给 WorkBuddy 发送即可，剩下的（下载文件、写入 MEMORY.md、验证）由它自动完成：
 
-> 请帮我安装 tps-report 技能： https://github.com/MartianC/tps-report, 按要求初始化并验证安装。
+```bash
+请帮我安装 tps-report 技能： https://github.com/MartianC/tps-report, 按要求初始化并验证安装。
+```
 
 <details>
 <summary>手动安装（备选）</summary>
