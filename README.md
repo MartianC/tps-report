@@ -1,87 +1,84 @@
-# tps-report · WorkBuddy 技能
+# tps-report · A Codex / WorkBuddy Skill
 
-在每个任务结束时，统计本任务内所有大模型请求的 TPS（每秒输出 token 数），
-并在最终回复末尾输出一行汇总：
+**English** | [简体中文](README_zh.md)
+
+At the end of every task, it measures the TPS (tokens per second) of all model requests made
+during that task and appends a one-line summary to the final reply. Works with both Codex and
+WorkBuddy:
 
 ```
 平均 TPS：xxx token/s，最高 TPS：xxx token/s
 ```
 
-![任务结束自动汇报 TPS 的实际效果](docs/usage.png)
+*(The script prints this summary line in Chinese; the format is
+`Average TPS: xxx token/s, Peak TPS: xxx token/s`.)*
 
-## 特性
+![What the automatic end-of-task TPS report looks like](docs/usage.png)
 
-- **无需手动操作**：安装并写入常驻规则后，每个任务结束都会**自动触发**，
-  汇总行自动附在最终回复末尾；也可以随时主动问「刚才 TPS 多少」。
-- **双数据源，自动择优**：优先读 WorkBuddy trace 真值（`~/.workbuddy/traces/` 里的
-  `generation` span，带真实耗时与 token 用量）；trace 异步落盘未就绪时，退回用
-  会话记录（`~/.workbuddy/projects/`）按落盘边界推导耗时。推导法经 186 组样本
-  与真值比对，中位相对误差 9%，20s 以上长调用误差 1~3%。
-- **不编造**：任何一次调用缺少 token 数或耗时就跳过；一条有效数据都没有时
-  原样输出降级提示，绝不估算。
-- **一行输出**：汇总只占最终回复最后一行，最多附一句异常提示
-  （慢调用 / 低于近 10 天中位水平）。
-- **加权平均**：平均 TPS = Σtoken ÷ Σ秒，避免短调用拉高整体。
+## Features
 
-## 安装
+- **No manual action needed.** Once the skill is installed and registered as a standing rule,
+  it fires automatically at the end of every task and appends the summary line to the final
+  reply. You can also ask "what was the TPS just now?" at any time.
+- **Never fabricates numbers.** Any call missing token counts or duration is skipped; when no
+  valid data exists at all, the degradation notice is printed verbatim — never an estimate.
+- **One line only.** The summary takes exactly the last line of the final reply, plus at most
+  one extra clause for anomalies (slow calls / below the trailing 10-day median).
+- **Token-weighted average.** Average TPS = Σ tokens ÷ Σ seconds, so short calls cannot
+  inflate the overall figure.
 
-**推荐方式**——把下面这句话复制给 WorkBuddy 发送即可，剩下的（下载文件、写入 MEMORY.md、验证）由它自动完成：
+## Installation
+
+Copy the sentence below to your agent and send it — everything else (downloading the files,
+writing `MEMORY.md`, verifying the install) is handled automatically:
 
 ```
 请帮我安装 tps-report 技能： https://github.com/MartianC/tps-report, 按要求初始化并验证安装。
 ```
 
-<details>
-<summary>手动安装（备选）</summary>
-
-1. 复制到用户级技能目录：
-
-   ```bash
-   cp -r tps-report ~/.workbuddy/skills/
-   ```
-
-2. 让技能常驻生效——在 `~/.workbuddy/MEMORY.md` 中写入常驻规则
-   （幂等，详见 SKILL.md 的「MEMORY.md 的处理说明 → 安装初始化」）。
-   这一步是关键：技能本身靠触发词加载，只有把规则写进用户级长期记忆，
-   才能**每个任务自动执行、不依赖手动触发**。
-
-3. 验证：
-
-   ```bash
-   python3 "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)" --verbose
-   ```
-
-</details>
-
-## 用法
-
-**日常无需任何手动操作**——技能常驻后，每次任务结束都会自动统计并汇报。
-以下命令仅用于手动验证、排障或主动查询：
+In Codex, simply place this directory under `$CODEX_HOME/skills/tps-report/` (default
+`~/.codex/skills/tps-report/`). Codex transcripts are auto-discovered from
+`~/.codex/sessions/`, so no `MEMORY.md` entry is required. The manual verification command is
+the same as for WorkBuddy:
 
 ```bash
-# 常规：输出一行汇总
-python3 scripts/tps_task.py --cwd "$(pwd)"
-
-# 排障 / 用户追问：逐次明细（走 stderr，不污染汇总行）
-python3 scripts/tps_task.py --cwd "$(pwd)" --verbose
-
-# 结构化输出
-python3 scripts/tps_task.py --cwd "$(pwd)" --json
-
-# 会话记录推导的每请求固定开销（秒），默认 0.35，其他环境可调
-python3 scripts/tps_task.py --cwd "$(pwd)" --overhead 0
+python3 scripts/tps_task.py --agent codex --cwd "$(pwd)" --verbose
 ```
 
-## 统计口径
+## Usage
 
-| 项 | 定义 |
+**No day-to-day action is required** — once the skill is resident, every task is measured and
+reported automatically. The commands below are only for manual verification, troubleshooting,
+or on-demand queries.
+
+`--agent` is required: pass `codex` for Codex, `workbuddy` for WorkBuddy. The script never
+switches between the two environments on its own.
+
+```bash
+# Normal: print the one-line summary
+python3 scripts/tps_task.py --agent codex --cwd "$(pwd)"
+
+# Troubleshooting / follow-up questions: per-call detail (written to stderr, keeping the summary line clean)
+python3 scripts/tps_task.py --agent codex --cwd "$(pwd)" --verbose
+
+# Structured output
+python3 scripts/tps_task.py --agent codex --cwd "$(pwd)" --json
+
+# Fixed per-request overhead (seconds) derived from session records; default 0.35, tunable in other environments
+python3 scripts/tps_task.py --agent codex --cwd "$(pwd)" --overhead 0
+```
+
+## Measurement Definitions
+
+| Item | Definition |
 |---|---|
-| TPS（单次） | `completion_tokens ÷ duration(秒)` |
-| 平均 TPS | `Σ completion_tokens ÷ Σ duration`（按 token 加权） |
-| 最高 TPS | 单次请求 TPS 的最大值 |
-| 单位 | token/s，保留 1 位小数 |
+| TPS (single call) | `completion_tokens ÷ duration (seconds)` |
+| Average TPS | `Σ completion_tokens ÷ Σ duration` (token-weighted) |
+| Peak TPS | Maximum single-call TPS |
+| Unit | token/s, rounded to 1 decimal place |
 
-## 兼容性
+## Compatibility
 
-在 macOS + WorkBuddy 2.137.1 上实测。数据目录结构变化时脚本以降级提示结束，
-不会报错。口径、边界与 MEMORY.md 处理规则详见 [SKILL.md](SKILL.md)。
+Verified on macOS with WorkBuddy 2.137.1 and on Codex Desktop rollout transcripts. If the data
+directory layout changes, the script exits with the degradation notice instead of raising an
+error. For the full definitions, edge cases, and standing-rule handling, see [SKILL.md](SKILL.md).

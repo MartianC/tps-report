@@ -1,7 +1,6 @@
 ---
 name: tps-report
-description: 统计当前任务内大模型请求的 TPS（每秒输出 token 数），并在任务最终回复末尾输出一行「平均 TPS：X，最高 TPS：Y」。触发时机：任何任务准备输出最终回复之前自动执行一次，无需用户要求。触发词：TPS、tokens per second、每秒 token、输出速度、模型速度、统计 TPS、汇报 TPS、刚才速度多少、性能下降。数据取自 WorkBuddy trace 真值或会话记录推导，数据缺失时明确输出无法计算，不估算、不编造。
-agent_created: true
+description: 统计当前任务内大模型请求的 TPS（每秒输出 token 数），并在任务最终回复末尾输出一行「平均 TPS：X，最高 TPS：Y」。触发时机：任何任务准备输出最终回复之前自动执行一次，无需用户要求。触发词：TPS、tokens per second、每秒 token、输出速度、模型速度、统计 TPS、汇报 TPS、刚才速度多少、性能下降。兼容 WorkBuddy 与 Codex，会话数据缺失时明确输出无法计算，不估算、不编造。
 ---
 
 # tps-report：任务结束的 TPS 汇报
@@ -37,7 +36,10 @@ agent_created: true
 3. **不触发的情况**：用户明确说「这次不用报」时跳过一次；纯闲聊（无模型请求、
    无工具调用）若脚本返回降级提示，按降级模板原样输出即可，不必展开解释。
 
-## 数据来源与采集方式（双源，脚本自动择优）
+## 数据来源与采集方式（由 Agent 指定环境）
+
+执行脚本时必须传入 `--agent codex` 或 `--agent workbuddy`。该参数只决定读取哪种
+产品的会话目录；选择 `workbuddy` 后，脚本仍会在 WorkBuddy trace 与会话记录之间自动择优。
 
 - **A. trace 真值（优先）**
   `~/.workbuddy/traces/<pid>/trace_*.json` 中 `type == "generation"` 的 span：
@@ -53,6 +55,11 @@ agent_created: true
   该偏移在本机（macOS + WorkBuddy 2.137.1）标定；其他环境如有偏差，
   用 `--overhead` 调整或设为 0。
 
+- **C. Codex rollout（Codex 适配）**
+  `CODEX_HOME/sessions/YYYY/MM/DD/rollout-*.jsonl`（默认 `~/.codex/sessions/`）中的
+  `event_msg`/`token_count` 事件。输出 token 使用 `output_tokens + reasoning_output_tokens`；
+  单次耗时用本任务起点或上一条 token_count 事件的时间差推导。字段缺失时按降级规则跳过。
+
 ## 执行步骤
 
 1. 在输出最终回复前，执行：
@@ -60,7 +67,13 @@ agent_created: true
 ```bash
 PY="$HOME/.workbuddy/binaries/python/envs/default/bin/python"
 [ -x "$PY" ] || PY=python3
-"$PY" "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)"
+"$PY" "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --agent workbuddy --cwd "$(pwd)"
+```
+
+若当前 Agent 是 Codex，则使用其 Python 环境并传入 `--agent codex`：
+
+```bash
+python3 "$CODEX_HOME/skills/tps-report/scripts/tps_task.py" --agent codex --cwd "$(pwd)"
 ```
 
 2. 取脚本 stdout 的**唯一一行**作为汇总行，原样附到最终回复最后一行。
@@ -86,13 +99,13 @@ PY="$HOME/.workbuddy/binaries/python/envs/default/bin/python"
 降级（数据缺失，原样输出）：
 
 ```
-TPS：本任务未采集到有效的 token 用量或耗时数据，无法计算（不估算、不猜测）
+TPS：本任务未采集到有效的 token 用量或耗时数据，无法计算
 ```
 
-## MEMORY.md 的处理说明
+## 常驻规则的处理说明
 
-本技能依赖 `~/.workbuddy/MEMORY.md`（用户级长期记忆）中的一条常驻规则，
-才能做到「每个任务自动执行、不依赖手动触发」。处理规则如下：
+WorkBuddy 依赖 `~/.workbuddy/MEMORY.md`（用户级长期记忆）中的一条常驻规则；
+Codex 由技能自动发现与用户级指令共同保证常驻执行。处理规则如下：
 
 **何时读取**
 
@@ -117,7 +130,7 @@ TPS：本任务未采集到有效的 token 用量或耗时数据，无法计算�
   （单次会话对该文件的写入量有上限，约 4KB）。
 - 规则块内容与 SKILL.md 不一致时，以 SKILL.md 为准，并顺手修正规则块。
 
-**安装初始化（幂等追加以下内容到 `~/.workbuddy/MEMORY.md` 顶部标题之后）**
+**WorkBuddy 安装初始化（幂等追加以下内容到 `~/.workbuddy/MEMORY.md` 顶部标题之后）**
 
 ````markdown
 ## 每次任务必做：结尾汇报 TPS（强制，跨项目通用）
@@ -128,36 +141,13 @@ TPS：本任务未采集到有效的 token 用量或耗时数据，无法计算�
 ```bash
 PY="$HOME/.workbuddy/binaries/python/envs/default/bin/python"
 [ -x "$PY" ] || PY=python3
-"$PY" "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)"
+"$PY" "$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --agent workbuddy --cwd "$(pwd)"
 ```
 
 - 取 stdout 的唯一一行原样附在末尾，格式：`平均 TPS：X.X token/s，最高 TPS：Y.Y token/s`
 - 若输出降级提示（"未采集到…无法计算"），原样附出，**不要改写成估算值、不要编造**
 - 详细口径、数据来源、降级规则见技能 `~/.workbuddy/skills/tps-report/SKILL.md`
 ````
-
-## 安装步骤（其他用户）
-
-把下面这句话复制给 WorkBuddy 发送即可，剩下的（下载文件、写入 MEMORY.md、验证）由它自动完成：
-
-> 请帮我安装 tps-report 技能：从 https://github.com/MartianC/tps-report 下载全部文件
-> （SKILL.md、scripts/tps_task.py、README.md），保存到 `~/.workbuddy/skills/tps-report/`
-> 目录（保持 scripts/ 子目录结构），然后按 SKILL.md 中「MEMORY.md 的处理说明 → 安装初始化」
-> 把常驻规则幂等追加到 `~/.workbuddy/MEMORY.md`（已存在则跳过），最后执行
-> `"$HOME/.workbuddy/skills/tps-report/scripts/tps_task.py" --cwd "$(pwd)" --verbose`
-> 验证安装，把结果告诉我。
-
-若最终输出命中次数与逐次明细，即安装成功；若输出降级提示，说明本机
-`~/.workbuddy/traces/` 或 `~/.workbuddy/projects/` 数据目录异常，需要单独排查。
-
-## 兼容性与已知边界
-
-- 基于 WorkBuddy 2.137.1（macOS）实测；数据目录结构若在未来版本变化，
-  脚本会以降级提示结束而不是报错。
-- 不含「本条最终回复」自身的生成（统计发生在它之前）。
-- 任务只有 1 次请求时，平均 TPS = 最高 TPS = 该次值，属正常。
-- 首轮耗时包含系统提示装配等前置开销，可能略偏高。
-- trace 源会给出准确的模型名；会话记录源因不带模型名，模型显示为 `current`。
 
 ## 为什么这样算（避免被"改坏"）
 
